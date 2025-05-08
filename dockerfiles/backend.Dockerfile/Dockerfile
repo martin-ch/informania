@@ -1,5 +1,11 @@
 FROM python:latest
 
+# Install Jupyter
+RUN pip install --no-cache-dir notebook
+
+# Expose the necessary port
+EXPOSE 8888
+
 # Download and install Zig from the official website (latest version)
 RUN curl -fsSL https://ziglang.org/builds/zig-linux-x86_64-0.15.0-dev.471+369177f0b.tar.xz -o /tmp/zig.tar.xz && \
     tar -xf /tmp/zig.tar.xz -C /opt && \
@@ -9,5 +15,7 @@ RUN curl -fsSL https://ziglang.org/builds/zig-linux-x86_64-0.15.0-dev.471+369177
 # Clone and build LMDB
 RUN git clone https://github.com/LMDB/lmdb.git /opt/lmdb && \
     make -C /opt/lmdb/libraries/liblmdb
+
+RUN which jupyter
 
 

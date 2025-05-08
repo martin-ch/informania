@@ -9,5 +9,5 @@ services:
     volumes:
       - /home/informania/Code/informania/backend:/opt/backend
     working_dir: /opt/backend
-    command: jupyter notebook --ip=127.0.0.1 --port=8888 --allow-root --NotebookApp.token=''
+    command: ["jupyter", "notebook", "--notebook-dir=/opt/backend/notebooks", "--ip=0.0.0.0", "--port=8888", "--allow-root", "--NotebookApp.token="]
     restart: always
