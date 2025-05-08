@@ -1,0 +1,13 @@
+services:
+  backend:
+    build:
+      context: ../backend.Dockerfile
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8888:8888"
+    volumes:
+      - /home/informania/Code/informania/backend:/opt/backend
+    working_dir: /opt/backend
+    command: jupyter notebook --ip=127.0.0.1 --port=8888 --allow-root --NotebookApp.token=''
+    restart: always
