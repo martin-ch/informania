@@ -3,6 +3,11 @@ FROM python:latest
 # Install Jupyter
 RUN pip install --no-cache-dir notebook
 
+# Install LMDB
+RUN apt-get update && \
+    apt-get install -y liblmdb-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 # Expose the necessary port
 EXPOSE 8888
 
@@ -10,12 +15,8 @@ EXPOSE 8888
 RUN curl -fsSL https://ziglang.org/builds/zig-linux-x86_64-0.15.0-dev.471+369177f0b.tar.xz -o /tmp/zig.tar.xz && \
     tar -xf /tmp/zig.tar.xz -C /opt && \
     mv "/opt/zig-linux-x86_64-0.15.0-dev.471+369177f0b" /opt/zig && \
-    rm /tmp/zig.tar.xz
+    rm /tmp/zig.tar.xz && \
+    ln -s /opt/zig/zig /usr/local/bin/zig
 
-# Clone and build LMDB
-RUN git clone https://github.com/LMDB/lmdb.git /opt/lmdb && \
-    make -C /opt/lmdb/libraries/liblmdb
-
-RUN which jupyter
 
 
