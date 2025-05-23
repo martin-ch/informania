@@ -1,3 +1,4 @@
 /backend/notebooks/.ipynb_checkpoints
 /backend-source/zig/.zig-cache
 /backend-source/zig/zig-out
+/backend/lmdb

@@ -11,4 +11,4 @@ services:
       - /home/informania/Code/informania/backend-source:/opt/backend-source
     working_dir: /opt/backend
     command: ["jupyter", "notebook", "--notebook-dir=/opt/backend/notebooks", "--ip=0.0.0.0", "--port=8888", "--allow-root", "--NotebookApp.token="]
-    restart: always
+    restart: unless-stopped
