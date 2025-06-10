@@ -12,9 +12,9 @@ RUN apt-get update && \
 EXPOSE 8888
 
 # Download and install Zig from the official website (latest version)
-RUN curl -fsSL https://ziglang.org/builds/zig-linux-x86_64-0.15.0-dev.471+369177f0b.tar.xz -o /tmp/zig.tar.xz && \
+RUN curl -fsSL https://ziglang.org/builds/zig-x86_64-linux-0.15.0-dev.671+c907866d5.tar.xz -o /tmp/zig.tar.xz && \
     tar -xf /tmp/zig.tar.xz -C /opt && \
-    mv "/opt/zig-linux-x86_64-0.15.0-dev.471+369177f0b" /opt/zig && \
+    mv "/opt/zig-x86_64-linux-0.15.0-dev.671+c907866d5" /opt/zig && \
     rm /tmp/zig.tar.xz && \
     ln -s /opt/zig/zig /usr/local/bin/zig
 
