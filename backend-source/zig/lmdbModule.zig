@@ -17,7 +17,7 @@ pub const lmdbModule = struct {
     cur: ?*c.MDB_cursor = undefined,
     dbi: c.MDB_dbi = undefined,
 
-    pub fn get(self: *lmdbModule, key: []const u8) ![]const u8 {
+    pub fn get(self: *lmdbModule, allocator: std.mem.Allocator, key: []const u8) ![]const u8 {
         defer self.deinit();
         try self.init(c.MDB_RDONLY);
 
@@ -29,7 +29,7 @@ pub const lmdbModule = struct {
         switch (rc) {
             c.MDB_SUCCESS => {
                 const src = @as([*]const u8, @ptrCast(v.mv_data))[0..v.mv_size];
-                const cpy = try std.heap.page_allocator.dupe(u8, src);
+                const cpy = try allocator.dupe(u8, src);
                 return cpy;
             },
             c.MDB_NOTFOUND => return error.GetKeyNotFound,
@@ -37,14 +37,13 @@ pub const lmdbModule = struct {
         }
     }
 
-    pub fn get_page(self: *lmdbModule, page: usize, page_size: usize) ![]hash_table {
+    pub fn get_page(self: *lmdbModule, allocator: std.mem.Allocator, page: usize, page_size: usize) ![]hash_table {
         var cur_pos: c.MDB_cursor_op = c.MDB_FIRST;
         var k: c.MDB_val = undefined;
         var v: c.MDB_val = undefined;
 
-        const allocator = std.heap.page_allocator;
         var entries = std.ArrayList(hash_table).init(allocator);
-        defer entries.deinit();
+        errdefer entries.deinit();
 
         defer self.deinit();
         try self.init(c.MDB_RDONLY);
@@ -69,8 +68,8 @@ pub const lmdbModule = struct {
                 const key = @as([*]const u8, @ptrCast(k.mv_data))[0..k.mv_size];
                 const val = @as([*]const u8, @ptrCast(v.mv_data))[0..v.mv_size];
 
-                const key_copy = try std.heap.page_allocator.dupe(u8, key);
-                const val_copy = try std.heap.page_allocator.dupe(u8, val);
+                const key_copy = try allocator.dupe(u8, key);
+                const val_copy = try allocator.dupe(u8, val);
 
                 try entries.append(.{
                     .key = key_copy,
