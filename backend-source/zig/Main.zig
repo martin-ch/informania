@@ -1,27 +1,55 @@
 const std = @import("std");
 const lmdb = @import("lmdbModule");
-const nats = @import("natsModule");
+// const nats = @import("natsModule");
 const lmdb_module = lmdb.lmdbModule;
 const hash_table = lmdb.hash_table;
-const nats_module = nats.natsModule;
+var put_result = lmdb.put_result;
+const versioning = lmdb.version_type;
+// const nats_module = nats.natsModule;
+
+pub const std_options: std.Options = .{
+    .log_level = .debug,
+};
+
+const log = std.log.scoped(.Main);
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer std.debug.assert(gpa.deinit() == .ok);
     const allocator = gpa.allocator();
 
-    // NATS
-    var myNats = nats_module{ .url = "nats://nats:4222", .subj = "lmdb.write" };
-    try (&myNats).run(allocator);
+    // LMDB
+    var myLmdb = lmdb_module{ .allocator = allocator, .path = "/opt/backend/lmdb" };
 
-    // // LMDB
-    // var myLmdb = lmdb_module{ .path = "/opt/backend/lmdb" };
+    try (&myLmdb).truncate();
 
-    // try (&myLmdb).truncate();
+    const data = &[_]hash_table{
+        .{ .version = undefined, .key = "01", .value = "a" },
+        .{ .version = 1, .key = "01", .value = "b" },
+        .{ .version = 1, .key = "01", .value = "c" },
+        .{ .version = 2, .key = "01", .value = "d" },
+        .{ .version = undefined, .key = "01", .value = "e" },
+        .{ .version = 1, .key = "01", .value = "f" },
+        .{ .version = 3, .key = "01", .value = "g" },
+        .{ .version = 4, .key = "01", .value = "h" },
+        .{ .version = 1, .key = "01", .value = "i" },
+    };
+    const results = try myLmdb.put(versioning.none, data);
 
-    // try myLmdb.put(&[_]hash_table{
-    //     .{ .key = "01", .value = "a" },
-    //     .{ .key = "02", .value = "b" },
+    defer {
+        // Free each element
+        for (results) |res| {
+            log.info("{s}", .{switch (res.result) {
+                .new => "new",
+                .new_version => "new_version",
+                .put_error => "put_error",
+                .dirty => "dirty",
+            }});
+            myLmdb.allocator.free(res.key);
+        }
+        // Free top-level array
+        myLmdb.allocator.free(results);
+    }
     //     .{ .key = "03", .value = "c" },
     //     .{ .key = "04", .value = "d" },
     //     .{ .key = "05", .value = "e" },

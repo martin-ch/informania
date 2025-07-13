@@ -5,12 +5,32 @@ const c = @cImport({
 
 const log = std.log.scoped(.LMDB);
 
+pub const version_type = enum(u8) {
+    none = 0,
+    row = 1,
+    commit = 2,
+};
+
 pub const hash_table = struct {
+    version: u8,
     key: []const u8,
     value: []const u8,
 };
 
+pub const put_result = struct {
+    key: []u8,
+    result: result_type,
+};
+
+pub const result_type = enum {
+    new,
+    new_version,
+    put_error,
+    dirty,
+};
+
 pub const lmdbModule = struct {
+    allocator: std.mem.Allocator,
     path: [:0]const u8,
     env: ?*c.MDB_env = undefined,
     txn: ?*c.MDB_txn = undefined,
@@ -83,23 +103,45 @@ pub const lmdbModule = struct {
         return entries.toOwnedSlice();
     }
 
-    pub fn put(self: *lmdbModule, items: []const hash_table) !void {
+    pub fn put(self: *lmdbModule, versioning: version_type, items: []const hash_table) ![]put_result {
         defer self.deinit();
         try self.init(0);
 
         // Clean up stale transactions
         try self.clear_stale_readers();
 
+        _ = versioning;
+        var results = try self.allocator.alloc(put_result, items.len);
         // Loop over items
-        for (items) |item| {
-            // Convert key and value to LMDB objects;
-            var k = c.MDB_val{ .mv_size = item.key.len, .mv_data = @constCast(item.key.ptr) };
-            var v = c.MDB_val{ .mv_size = item.value.len, .mv_data = @constCast(item.value.ptr) };
+        for (items, 0..) |item, i| {
+            var flags: c_uint = c.MDB_NOOVERWRITE;
 
-            // Write Key / Value
-            if (c.mdb_put(self.txn, self.dbi, &k, &v, 0) != c.MDB_SUCCESS) {
-                return error.PutFailed;
+            // Prefix row version. Try 0 and if the record exist, use version += 1
+            var value_buf = try self.allocator.alloc(u8, item.value.len + 1);
+            defer self.allocator.free(value_buf);
+            value_buf[0] = 1; // initial row version is 1
+            @memcpy(value_buf[1..], item.value);
+
+            while (true) {
+                // Convert key and value to LMDB objects;
+                var k = c.MDB_val{ .mv_size = item.key.len, .mv_data = @constCast(item.key.ptr) };
+                var v = c.MDB_val{ .mv_size = value_buf.len, .mv_data = @constCast(value_buf.ptr) };
+
+                // Write Key / Value
+                try switch (c.mdb_put(self.txn, self.dbi, &k, &v, flags)) {
+                    c.MDB_SUCCESS => break,
+                    c.MDB_KEYEXIST => {
+                        flags = 0; // allow overwrite
+                        value_buf[0] = @as(*u8, @ptrCast(v.mv_data)).* +% 1; //increment version, +% ensures wrapping
+                        log.debug("Key '{s}' exists, overwriting with version '{d}'", .{ item.key, value_buf[0] });
+                    },
+                    else => error.PutFailed,
+                };
             }
+            results[i] = put_result{
+                .key = try self.allocator.dupe(u8, item.key),
+                .result = .dirty,
+            };
         }
         // Commit Transaction
         if (c.mdb_txn_commit(self.txn) != c.MDB_SUCCESS) {
@@ -107,6 +149,7 @@ pub const lmdbModule = struct {
         } else {
             self.txn = null;
         }
+        return results;
     }
 
     pub fn del(self: *lmdbModule, key: []const u8) !void {
