@@ -7,7 +7,6 @@ RUN pip install --no-cache-dir notebook
 RUN apt-get update && \
     apt-get install -y  liblmdb-dev \
                         curl git zip && \
-                        # build-essential cmake libssl-dev pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and install Zig from the official website (latest version)
@@ -16,12 +15,6 @@ RUN curl -fsSL https://ziglang.org/builds/zig-x86_64-linux-0.15.0-dev.936+fc2c18
     mv "/opt/zig-x86_64-linux-0.15.0-dev.936+fc2c1883b" /opt/zig && \
     rm /tmp/zig.tar.xz && \
     ln -s /opt/zig/zig /usr/local/bin/zig
-
-# WORKDIR /opt
-# RUN git clone https://github.com/microsoft/vcpkg.git && \
-#     cd vcpkg && \
-#     ./bootstrap-vcpkg.sh --disableMetrics && \
-#     ./vcpkg install cnats
 
 # Expose the necessary port
 EXPOSE 8888
