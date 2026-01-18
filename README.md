@@ -5,9 +5,6 @@ onenote:https://photonenergyco-my.sharepoint.com/personal/martin_buhler_photonen
 Project structure:
 
 ```
-Project structure:
-
-```
 yourapp/
 ├─ README.md
 ├─ .gitignore
@@ -177,5 +174,4 @@ yourapp/
    ├─ proxy.md                            # Caddy/NGINX config notes
    └─ secrets.md                          # how secrets are pulled at deploy/runtime
 
-```
 ```
